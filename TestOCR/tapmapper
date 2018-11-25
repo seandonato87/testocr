@@ -1,0 +1,260 @@
+//
+//  TapScreen.swift
+//  TestOCR
+//
+//  Created by Sean Donato on 11/19/18.
+//  Copyright © 2018 Sean Donato. All rights reserved.
+//
+
+import UIKit
+import Alamofire
+
+extension UIImage {
+    class func circle(diameter: CGFloat, color: UIColor, point: CGPoint) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: diameter, height: diameter), false, 0)
+        let ctx = UIGraphicsGetCurrentContext()!
+        ctx.saveGState()
+        
+        let rect = CGRect(x: point.x, y: point.y, width: diameter, height: diameter)
+        ctx.setFillColor(color.cgColor)
+        ctx.fillEllipse(in: rect)
+        
+        ctx.restoreGState()
+        let img = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+        
+        return img
+    }
+}
+
+class TapScreen: UIViewController, UIGestureRecognizerDelegate,UITableViewDelegate,UITableViewDataSource {
+    
+    var array = [1,2,3,4,5,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36]
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
+        return array.count
+        
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        if let cell = tableView.dequeueReusableCell(withIdentifier: "tapcell") as? TapCell{
+            
+            if(indexPath.row == array.count-1){
+                
+                
+                
+            }
+            return cell
+            
+        }
+        
+        
+        return UITableViewCell()
+    }
+    
+    
+    @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var imageView: UIImageView!
+    
+    @IBOutlet var mView: UIView!
+    
+    var pointArray = [CGPoint]()
+    
+    override func viewDidLoad() {
+        
+        super.viewDidLoad()
+
+        tableView.delegate = self
+        tableView.dataSource = self
+        //let tap = UITapGestureRecognizer(target: self, action: Selector("handleTap:"))
+        
+        tableView.register(UINib(nibName: "TapCell", bundle: nil), forCellReuseIdentifier: "tapcell")
+        
+        let tp = UITapGestureRecognizer(target: self, action: #selector(self.handleTap(sender:)))
+        tp.delegate = self
+
+    //    mView.addGestureRecognizer(tp)
+        tableView.addGestureRecognizer(tp)
+        // Do any additional setup after loading the view.
+     }
+    
+     @objc func handleTap(sender: UITapGestureRecognizer? = nil) {
+        
+        if let sndr = sender as? UITapGestureRecognizer
+        {
+
+           var loc = sndr.location(in: tableView)
+            pointArray.append(loc)
+
+        }
+        // handling code
+    }
+    
+    @IBAction func processTaps(_ sender: Any) {
+        
+    //    var image = asImage()
+        let image = getTableImage()
+        var i = 0
+        let xx  = DrawOnImage(startingImage: image)
+        imageView.isHidden = false
+        self.view.bringSubview(toFront: imageView)
+        imageView.image = xx
+        
+    }
+    
+    func asImage() -> UIImage {
+        if #available(iOS 10.0, *) {
+            let renderer = UIGraphicsImageRenderer(bounds: tableView.bounds)
+            return renderer.image { rendererContext in
+                tableView.layer.render(in: rendererContext.cgContext)
+                //mView.layer.render(in: rendererContext.cgContext)
+            }
+        } else {
+            UIGraphicsBeginImageContext(self.view.frame.size)
+            self.view.layer.render(in:UIGraphicsGetCurrentContext()!)
+            let image = UIGraphicsGetImageFromCurrentImageContext()
+            UIGraphicsEndImageContext()
+            return UIImage(cgImage: image!.cgImage!)
+        }
+    }
+    
+    func circle(diameter: CGFloat, color: UIColor) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(CGSize(width: diameter, height: diameter), false, 0)
+        let ctx = UIGraphicsGetCurrentContext()!
+        ctx.saveGState()
+
+        var i = 0
+
+        while i < pointArray.count{
+
+            var point = pointArray[i]
+            let rect = CGRect(x: point.x, y: point.y, width: diameter, height: diameter)
+            ctx.setFillColor(color.cgColor)
+            ctx.fillEllipse(in: rect)
+
+        }
+
+        ctx.restoreGState()
+        let img = UIGraphicsGetImageFromCurrentImageContext()!
+        UIGraphicsEndImageContext()
+
+        return img
+    }
+    
+    func DrawOnImage(startingImage: UIImage) -> UIImage {
+        
+        // Create a context of the starting image size and set it as the current one
+        UIGraphicsBeginImageContext(startingImage.size)
+        
+        // Draw the starting image in the current context as background
+        startingImage.draw(at: CGPoint.zero)
+
+        var i = 0
+        
+        let context = UIGraphicsGetCurrentContext()!
+
+        while i < pointArray.count{
+            
+            let point = pointArray[i]
+            context.setStrokeColor(UIColor.red.cgColor)
+            context.setAlpha(0.2)
+            context.setLineWidth(10.0)
+
+            context.addEllipse(in: CGRect(x: point.x, y: point.y, width: 10, height: 10))
+            context.drawPath(using: .stroke) // or .fillStroke if need filling
+            i += 1
+        }
+        
+        // Get the current context
+        
+        // Draw a red line
+//        context.setLineWidth(2.0)
+//        context.setStrokeColor(UIColor.red.cgColor)
+//        context.move(to: CGPoint(x: 100, y: 100))
+//        context.addLine(to: CGPoint(x: 200, y: 200))
+//        context.strokePath()
+        
+        // Draw a transparent green Circle
+        
+        // Save the context as a new UIImage
+        let myImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        // Return modified image
+        return myImage ?? UIImage()
+    }
+    /*
+    // MARK: - Navigation
+
+    // In a storyboard-based application, you will often want to do a little preparation before navigation
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        // Get the new view controller using segue.destination.
+        // Pass the selected object to the new view controller.
+    }
+    */
+
+    func getTableImage()->UIImage{
+        
+       let sz = CGSize(width: tableView.contentSize.width, height: tableView.contentSize.height)
+        
+        UIGraphicsBeginImageContextWithOptions(sz,false, 0.0)
+        
+        let context = UIGraphicsGetCurrentContext()
+        
+        let previousFrame = tableView.frame
+        
+        let rct = CGRect(x: tableView.frame.origin.x, y: tableView.frame.origin.y, width: tableView.contentSize.width, height: tableView.contentSize.height)
+        tableView.frame = rct;
+        
+        tableView.layer.render(in: context!)
+        
+        tableView.frame = previousFrame
+        
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext();
+        
+        //imageView.image = image;
+        return image ?? UIImage()
+    }
+    
+    func uploadImage() {
+        
+        let image = self.imageView.image!
+        //let image = UIImage.init(named: "myImage")
+
+        let imgData = UIImageJPEGRepresentation(image, 0.1)!
+
+        print(imgData)
+
+        let parameters = ["name": "Frank Bergmann"]
+
+        Alamofire.upload(multipartFormData: { multipartFormData in
+            multipartFormData.append(imgData, withName: "userfile",fileName: "file.jpg", mimeType: "image/jpg")
+            for (key, value) in parameters {
+                multipartFormData.append(value.data(using: String.Encoding.utf8)!, withName: key)
+            }
+        },
+                         to:"https://seandonato.com/html/php_cbm/newtapmap")
+        { (result) in
+            switch result {
+            case .success(let upload, _, _):
+
+                upload.uploadProgress(closure: { (progress) in
+                    print("Upload Progress: \(progress.fractionCompleted)")
+                })
+
+                upload.responseJSON { response in
+                    print(response.result.value!)
+                }
+
+            case .failure(let encodingError):
+                print(encodingError)
+            }
+        }
+    }
+
+}
+
+
+
